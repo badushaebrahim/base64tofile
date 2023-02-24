@@ -1,0 +1,97 @@
+
+<html>
+  <style>
+    body {
+      background-color: #f2f2f2;
+      font-family: Arial, sans-serif;
+    }
+
+    #container {
+      width: 60%;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #ffffff;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    h1 {
+      text-align: center;
+      color: #333333;
+    }
+
+    form {
+      margin-top: 30px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    input[type="submit"] {
+      padding: 10px 20px;
+      background-color: #4caf50;
+      color: #ffffff;
+      font-size: 16px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    input[type="submit"]:hover {
+      background-color: #3e8e41;
+    }
+
+    #result {
+      margin-top: 30px;
+      text-align: center;
+    }
+    </style>
+<form id="convert-form">
+  <label for="base64-input">Base64 string:</label>
+  <textarea id="base64-input" name="data"></textarea>
+  <br>
+  <label for="format-select">Format:</label>
+  <select id="format-select" name="format">
+    <option value="pdf">PDF</option>
+          <option value="doc">Word</option>
+          <option value="xls">Excel</option>
+          <option value=".ppt">PowerPoint</option>
+  </select>
+  <br>
+  <button type="submit">Convert</button>
+</form>
+
+<script>
+  const form = document.getElementById('convert-form');
+
+form.addEventListener('submit', async (event) => {
+  event.preventDefault();
+
+  const formData = new FormData(event.target);
+  const format = formData.get('format');
+  const data = formData.get('data');
+
+  const response = await fetch('/convert', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ data, format })
+  });
+
+  if (!response.ok) {
+    const errorMessage = await response.text();
+    alert(`Conversion failed: ${errorMessage}`);
+    return;
+  }
+
+  const blob = await response.blob();
+
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = `file.${format}`;
+  link.click();
+});
+
+</script>
+
+</html>
