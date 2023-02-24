@@ -12,7 +12,7 @@ app.use(bodyParser.json({ limit: '5000mb' }));
 app.post('/convert', (req, res) => {
 	console.log("hit")
 	const { data, format } = req.body;
-	console.log(req.body)
+	// console.log(req.body)s
 	const fileTypes = {
 	  'pdf': 'application/pdf',
 	  'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
