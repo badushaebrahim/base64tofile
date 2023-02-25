@@ -9,7 +9,14 @@ const JSZip = require('jszip');
 const fs = require('fs');
 const path = require('path');
 const archiver = require('archiver');
+// const { spawn } = require('child_process');
+const { exec } = require('child_process');
+// const { promisify } = require('util');
+// const { spawn } = require('child_process');
+const { promisify } = require('util');
 const { spawn } = require('child_process');
+// const jsonschema2pojo = require('jsonschema2pojo');
+const json2java = require('json-2-java');
 
 const app = express();
 
@@ -38,7 +45,29 @@ app.post('/convert', (req, res) => {
 	  res.status(400).send('Invalid file type');
 	}
       });
+     
+      app.post('/json-to-pojo', async (req, res) => {
+        try {
+          // Get JSON from request body
+          const json = JSON.parse(req.body.json);
       
+          // Convert JSON to POJO
+          const pojo = await promisify(jsonschema2pojo)(json);
+      
+          // Write POJO to a file
+          await writeFile('output/Pojo.java', pojo);
+      
+          // Create a ZIP archive with the POJO file
+          await zip('output', 'output.zip');
+      
+          // Send the ZIP file as a response
+          res.download('output.zip', 'output.zip');
+        } catch (error) {
+          console.error(error);
+          res.status(500).send('An error occurred');
+        }
+      });
+
 app.post('/converta', async (req, res) => {
   const { data, format } = req.body;
   const buffer = Buffer.from(data, 'base64');
@@ -85,6 +114,7 @@ app.get("/pojoa",(req,res)=>{
 
 // json to pojo 
 app.post('/pojo', (req, res) => {
+  console.log(req.body)
   const json = req.body.json;
   jsonToGraphql(json, { noArrays: true }).then((result) => {
     const zip = new JSZip();
@@ -99,7 +129,45 @@ app.post('/pojo', (req, res) => {
     res.status(400).send(`Error converting JSON to POJO: ${err}`);
   });
 });
+//s
+app.post('/json-to-java', (req, res) => {
+  console.log(req.body)
+  const { json } = req.body;
 
+  // if (!json) {
+  //   return res.status(400).send({ error: 'No JSON data provided' });
+  // }
+
+  const options = {
+    className: 'MyClass',
+    packageName: 'com.example',
+    imports: ['java.util.List', 'java.util.Map'],
+    annotations: ['@JsonProperty'],
+    accessModifier: 'public',
+    finalFields: true,
+    includeConstructors: true,
+    includeGettersSetters: true,
+    useDoubleNumbers: true,
+    useBigIntegers: true,
+    useBigDecimals: true,
+    includeJsr303Annotations: true,
+    includeAdditionalProperties: true,
+    includeConstructorsFromSuperclass: true,
+  };
+
+  try {
+    const result = json2java.convert(json, options);
+
+    // Send result as a ZIP file
+    res.set('Content-Type', 'application/zip');
+    res.set('Content-Disposition', 'attachment; filename=MyClass.zip');
+    res.send(result);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).send({ error: 'An error occurred while converting JSON to Java classes' });
+  }
+});
+//s
 // json 
 app.post('/pojos', (req, res) => {
   const json = req.body;
@@ -184,6 +252,54 @@ app.post('/convert-xml-to-json', (req, res) => {
 
 
 
+app.post('/generate-pojo', async (req, res) => {
+  try {
+    const inputJson = JSON.stringify(req.body, null, 2);
+
+    // Generate POJO files using jsonschema2pojo
+    await new Promise((resolve, reject) => {
+      exec(`jsonschema2pojo -s -t /tmp/pojos -p com.example.pojo -l java -A aop=false,parcelable=false -T json ${inputJson}`, (error, stdout, stderr) => {
+        if (error) {
+          console.error(`exec error: ${error}`);
+          reject(error);
+        }
+        console.log(`stdout: ${stdout}`);
+        console.log(`stderr: ${stderr}`);
+        resolve();
+      });
+    });
+
+    // Create zip file of POJO files
+    const output = fs.createWriteStream('/tmp/pojos.zip');
+    const archive = archiver('zip', { zlib: { level: 9 } });
+
+    output.on('close', function () {
+      console.log(`${archive.pointer()} total bytes`);
+      console.log('archiver has been finalized and the output file descriptor has closed.');
+      res.download('/tmp/pojos.zip', 'pojos.zip', (err) => {
+        if (err) {
+          console.error(err);
+          res.status(500).send('Failed to download pojos.zip');
+        } else {
+          console.log('pojos.zip downloaded successfully');
+        }
+      });
+    });
+
+    archive.on('error', function (err) {
+      console.error(err);
+      res.status(500).send('Failed to generate pojos.zip');
+    });
+
+    archive.pipe(output);
+    archive.directory('/tmp/pojos', 'pojos');
+    archive.finalize();
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Failed to generate pojos.zip');
+  }
+});
 
 
 
