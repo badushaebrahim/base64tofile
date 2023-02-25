@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>JSON to Java POJO Converter</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: Arial, sans-serif;
+      }
+
+      .container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        background-color: #f5f5f5;
+      }
+
+      h1 {
+        margin-top: 0;
+      }
+
+      .form-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+        background-color: white;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        border-radius: 5px;
+      }
+
+      label {
+        margin-bottom: 0.5rem;
+      }
+
+      input[type="submit"] {
+        margin-top: 1rem;
+        padding: 0.5rem;
+        background-color: #4caf50;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+
+      .download-link {
+        margin-top: 1rem;
+        text-decoration: none;
+        padding: 0.5rem;
+        background-color: #4caf50;
+        color: white;
+        border-radius: 5px;
+      }
+
+      .download-link:hover {
+        background-color: #3e8e41;
+      }
+
+      .hidden {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>JSON to Java POJO Converter</h1>
+      <div class="form-container">
+        <form method="POST" enctype="multipart/form-data">
+          <label for="json-input">Paste your JSON here:</label>
+          <textarea name="json-input" id="json-input" rows="10"></textarea>
+          <label for="package-name">Package name:</label>
+          <input type="text" name="package-name" id="package-name" />
+          <label for="class-name">Class name:</label>
+          <input type="text" name="class-name" id="class-name" />
+          <input type="submit" value="Convert" />
+        </form>
+        <a href="#" class="download-link hidden" download>Download POJO Zip</a>
+      </div>
+    </div>
+    <script>
+      const form = document.querySelector("form");
+      const downloadLink = document.querySelector(".download-link");
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const formData = new FormData(form);
+        const response = await fetch("/pojos", {
+          method: "POST",
+          body: formData,
+        });
+        const fileName = response.headers.get("Content-Disposition").match(/filename="(.+)"/)[1];
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        downloadLink.href = url;
+        downloadLink.textContent = `Download ${fileName}`;
+        downloadLink.classList.remove("hidden");
+      });
+    </script>
+  </body>
+</html>
